@@ -1,0 +1,55 @@
+const dummyUsers = [
+  {
+    clerkId: 'user_2k9zLQwXyZAbC1dEfGhIjKlMn',
+    email: 'alice.martinez@example.com',
+    name: 'Alice Martinez',
+    imageUrl:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=387&q=80',
+    isOnboarded: true,
+    bio: 'Coffee-lover, hiker, and software tinkerer exploring the world one commit at a time.',
+    age: 29,
+    dateOfBirth: '1996-04-12',
+    city: 'Austin',
+    country: 'USA',
+    location: { latitude: 30.2672, longitude: -97.7431 },
+    gender: 'female',
+    languagesSpoken: ['English', 'Spanish'],
+    interests: ['hiking', 'photography', 'open-source', 'espresso'],
+  },
+  {
+    clerkId: 'user_3mNpQrStUvWxYzAbCdEfGhIj',
+    email: 'raj.patel@example.com',
+    name: 'Raj Patel',
+    imageUrl:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=387&q=80',
+    isOnboarded: true,
+    bio: 'i love vibe coding',
+    age: 23,
+    dateOfBirth: '1995-04-12',
+    city: 'Mumbai',
+    country: 'India',
+    location: { latitude: 19.076, longitude: 72.8777 },
+    gender: 'male',
+    languagesSpoken: ['Hindi', 'English'],
+    interests: ['travel', 'photography', 'music', 'cooking'],
+  },
+  {
+    clerkId: 'user_4oPqRsTuVwXyZaBcDeFgHiJk',
+    email: 'mei.tanaka@example.com',
+    name: 'Mei Tanaka',
+    imageUrl:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=387&q=80',
+    isOnboarded: true,
+    bio: 'Digital nomad & UX researcher. Currently obsessed with urban sketching and matcha lattes.',
+    age: 34,
+    dateOfBirth: '1991-08-03',
+    city: 'Berlin',
+    country: 'Germany',
+    location: { latitude: 52.52, longitude: 13.405 },
+    gender: 'non-binary',
+    languagesSpoken: ['English', 'Japanese', 'German'],
+    interests: ['sketching', 'user-research', 'travel', 'sustainability'],
+  },
+];
+
+export default dummyUsers;

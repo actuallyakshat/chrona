@@ -1,17 +1,11 @@
 // app/(tabs)/index.tsx
-import { useAuth } from '@clerk/clerk-expo';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
 export default function HomePage() {
-  const { signOut } = useAuth();
   return (
-    <View className="bg-background flex-1">
-      {/* Your page content */}
-      <ScrollView className="flex-1 px-5">
-        <Text className="mt-5 text-base">Your app content goes here...</Text>
-        <Pressable className="mt-5" onPress={() => signOut()}>
-          <Text>Logout</Text>
-        </Pressable>
+    <View className="flex-1 bg-background">
+      <ScrollView className="flex-1 gap-3 px-4 py-3">
+        <Text className="mb-5 mt-2 font-playfair text-zinc-900">Home Page</Text>
       </ScrollView>
     </View>
   );

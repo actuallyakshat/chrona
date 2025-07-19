@@ -1,7 +1,7 @@
 # Todo List for Chrona
 
 - [x] Setup auth with clerk and webhook for Convex.
-- [ ] Setup onboarding flow before user can start using the app
+- [x] Setup onboarding flow before user can start using the app
 - [ ] Setup convex schema for user, letters, friends, etc.
   - [ ] Users can fill their personal details that will be used to create their profile
   - [ ] Users can specify their preferred languages, age rang and gender of potential friends they wish to make on Chrona.

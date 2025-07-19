@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as http from "../http.js";
+import type * as recommendation from "../recommendation.js";
 import type * as user from "../user.js";
 
 /**
@@ -26,6 +27,7 @@ import type * as user from "../user.js";
  */
 declare const fullApi: ApiFromModules<{
   http: typeof http;
+  recommendation: typeof recommendation;
   user: typeof user;
 }>;
 export declare const api: FilterApi<

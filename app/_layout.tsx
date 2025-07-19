@@ -1,10 +1,17 @@
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { tokenCache } from '@clerk/clerk-expo/token-cache';
-import { Slot, SplashScreen, usePathname, useRouter } from 'expo-router';
+import { Slot, SplashScreen } from 'expo-router';
 import { useEffect } from 'react';
 import '../global.css';
+import { useSyncQueriesExternal } from 'react-query-external-sync';
 
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
+
+import { ConvexQueryClient } from '@convex-dev/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+import * as SecureStore from 'expo-secure-store';
+import * as ExpoDevice from 'expo-device';
 
 import {
   PlayfairDisplay_400Regular,
@@ -37,32 +44,13 @@ import {
   useFonts as useInterFonts,
 } from '@expo-google-fonts/inter';
 import { ConvexReactClient } from 'convex/react';
+import { Platform } from 'react-native';
 
 SplashScreen.preventAutoHideAsync();
 
-function AuthChecker({ children }: { children?: React.ReactNode }) {
-  const { isLoaded, isSignedIn } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
+function InitialLayout() {
+  const { isLoaded } = useAuth();
 
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    if (isSignedIn) {
-      router.replace('/(protected)/(tabs)');
-    } else if (pathname !== '/' && !isSignedIn) {
-      router.replace('/(public)/signin');
-    }
-  }, [isLoaded, isSignedIn, router, pathname]);
-
-  if (!isLoaded) return null;
-
-  return <Slot />;
-}
-
-const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL as string);
-
-export default function RootLayout() {
   const [loadedPlayfair] = useFonts({
     PlayfairDisplay_400Regular,
     PlayfairDisplay_400Regular_Italic,
@@ -92,16 +80,61 @@ export default function RootLayout() {
     Inter_900Black,
   });
 
+  const isReady = isLoaded && loadedPlayfair && loadedInter;
+
+  // Hide splash screen when everything is ready
   useEffect(() => {
-    if (loadedPlayfair && loadedInter) {
+    if (isReady) {
       SplashScreen.hideAsync();
     }
-  }, [loadedPlayfair, loadedInter]);
+  }, [isReady]);
+
+  return <Slot />;
+}
+
+const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL as string);
+const convexQueryClient = new ConvexQueryClient(convex);
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      queryKeyHashFn: convexQueryClient.hashFn(),
+      queryFn: convexQueryClient.queryFn(),
+    },
+  },
+});
+convexQueryClient.connect(queryClient);
+
+export default function RootLayout() {
+  useSyncQueriesExternal({
+    queryClient,
+    socketURL: 'http://localhost:42831', // Default port for React Native DevTools
+    deviceName: Platform?.OS || 'web', // Platform detection
+    platform: Platform?.OS || 'web', // Use appropriate platform identifier
+    deviceId: Platform?.OS || 'web', // Use a PERSISTENT identifier (see note below)
+    isDevice: ExpoDevice.isDevice, // Automatically detects real devices vs emulators
+    extraDeviceInfo: {
+      // Optional additional info about your device
+      appVersion: '1.0.0',
+      // Add any relevant platform info
+    },
+    enableLogs: false,
+    envVariables: {
+      NODE_ENV: process.env.NODE_ENV,
+      // Add any private environment variables you want to monitor
+      // Public environment variables are automatically loaded
+    },
+    // Storage monitoring with CRUD operations
+    // asyncStorage: AsyncStorage, // AsyncStorage for ['#storage', 'async', 'key'] queries + monitoring
+    secureStorage: SecureStore, // SecureStore for ['#storage', 'secure', 'key'] queries + monitoring
+    secureStorageKeys: ['userToken', 'refreshToken', 'biometricKey', 'deviceId'], // SecureStore keys to monitor
+  });
 
   return (
     <ClerkProvider tokenCache={tokenCache}>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <AuthChecker />
+        <QueryClientProvider client={queryClient}>
+          <InitialLayout />
+        </QueryClientProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>
   );
