@@ -1,13 +1,15 @@
 import { useQuery } from 'convex/react';
 import { useLocalSearchParams } from 'expo-router';
-import { View, Text, Image, ScrollView } from 'react-native';
+import { Image, ScrollView, Text, View } from 'react-native';
 import { api } from '~/convex/_generated/api';
 import { Id } from '~/convex/_generated/dataModel';
 
 export default function UserProfilePreview() {
   //query search param
   const { id } = useLocalSearchParams();
-  const fetchedUser = useQuery(api.user.get, { id: id as Id<'user'> });
+  const fetchedUser = useQuery(api.user.get, {
+    id: id as Id<'user'>,
+  });
 
   if (!fetchedUser) {
     return (
@@ -51,7 +53,7 @@ export default function UserProfilePreview() {
       <View className="mb-3">
         <Text className="mb-2 text-lg font-semibold text-black">Location</Text>
         <View className="flex-row flex-wrap">
-          <View className="rounded-full border border-black px-3 py-1">
+          <View className=" border border-black px-3 py-1">
             <Text className="text-sm font-medium text-black">
               {fetchedUser.city}, {fetchedUser.country}
             </Text>
@@ -64,7 +66,7 @@ export default function UserProfilePreview() {
         <Text className="mb-2 text-lg font-semibold text-black">Languages Spoken</Text>
         <View className="flex-row flex-wrap gap-2">
           {fetchedUser.languagesSpoken?.map((lang) => (
-            <View key={lang} className="rounded-full border border-black px-3 py-1">
+            <View key={lang} className=" border border-black px-3 py-1">
               <Text className="text-sm font-medium text-black">{lang}</Text>
             </View>
           ))}
@@ -76,7 +78,7 @@ export default function UserProfilePreview() {
         <Text className="mb-2 text-lg font-semibold text-black">Interests</Text>
         <View className="flex-row flex-wrap gap-2">
           {fetchedUser.interests?.map((interest) => (
-            <View key={interest} className="rounded-full border border-black px-3 py-1">
+            <View key={interest} className=" border border-black px-3 py-1">
               <Text className="text-sm font-medium text-black">{interest}</Text>
             </View>
           ))}

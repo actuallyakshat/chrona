@@ -156,12 +156,12 @@ export default function ConnectionDetailsPage() {
   if (fresh === 'true') {
     return (
       <KeyboardAvoidingView
-        className="flex-1 bg-white"
+        className="flex-1 "
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={80}>
-        <View className="flex-1 bg-white">
+        <View className="flex-1">
           {/* Header Section */}
-          <View className="border-b border-black bg-white px-6 py-8">
+          <View className="border-b border-black px-6 py-8">
             <Text className="text-2xl font-bold text-black">New Connection</Text>
             <Text className="mt-2 text-lg text-black">{name}</Text>
             <Text className="mt-4 text-base text-gray-700">
@@ -176,7 +176,7 @@ export default function ConnectionDetailsPage() {
                 Compose Your Chronicle ({wordCount}/{MIN_WORDS} words minimum)
               </Text>
               <TextInput
-                className="flex-1 border border-black bg-white p-4 text-base text-black"
+                className="flex-1 border border-black  p-4 text-base text-black"
                 value={message}
                 onChangeText={setMessage}
                 placeholder={`Write at least ${MIN_WORDS} words to create a meaningful connection...`}
@@ -199,7 +199,7 @@ export default function ConnectionDetailsPage() {
 
             {/* Send Button */}
             <Pressable
-              className={`mt-6 border-2 p-4 ${
+              className={`mt-6 border p-4 ${
                 isMessageValid && !isLoading
                   ? 'border-black bg-black'
                   : 'border-gray-300 bg-gray-100'
@@ -222,10 +222,10 @@ export default function ConnectionDetailsPage() {
   // Normal chat UI
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-white"
+      className="flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={80}>
-      <View className="flex-1 bg-white">
+      <View className="flex-1">
         {/* Messages List */}
         <FlatList
           data={chronicles}
@@ -241,11 +241,11 @@ export default function ConnectionDetailsPage() {
 
             return (
               <View
-                className={`mb-6 max-w-[85%] border-2 border-black p-4 ${
+                className={`mb-6 max-w-[85%] border-[0.7px] border-black p-4 ${
                   isSender ? 'self-end bg-black' : 'self-start bg-white'
                 }`}>
                 <Text
-                  className={`font-inter text-base leading-6 tracking-tight ${isSender ? 'text-white' : 'text-black'}`}>
+                  className={`font-inter text-base leading-6 tracking-tighter ${isSender ? 'text-white' : 'text-black'}`}>
                   {item.content}
                 </Text>
                 <Text className={`mt-3 text-xs ${isSender ? 'text-gray-300' : 'text-gray-500'}`}>
@@ -262,20 +262,20 @@ export default function ConnectionDetailsPage() {
         {me && data ? (
           isLastMessageFromCurrentUser ? (
             <View className="border-t-[0.6px] border-black bg-white p-6 text-center">
-              <Text className="font-playfair-italic text-base text-gray-600">
+              <Text className="font-playfair text-base tracking-tighter text-gray-600">
                 Meaningful conversation is a two-way street. Wait for {name} to reply before sending
                 another chronicle.
               </Text>
             </View>
           ) : (
-            <View className="border-t-2 border-black bg-white p-4">
-              <Text className="mb-2 text-sm font-medium text-black">
+            <View className="border-t-[0.7px] border-black bg-white p-4">
+              <Text className="mb-2 font-playfair text-sm font-medium text-black">
                 Write Your Reply ({wordCount}/{MIN_WORDS} words minimum)
               </Text>
 
               <View className="mb-3">
                 <TextInput
-                  className="min-h-[100px] border border-black bg-white p-3 text-base text-black"
+                  className="min-h-[100px] border-[0.7px] border-black bg-white p-3 text-base text-black"
                   value={message}
                   onChangeText={setMessage}
                   placeholder={`Take your time and write at least ${MIN_WORDS} meaningful words...`}
@@ -298,7 +298,7 @@ export default function ConnectionDetailsPage() {
                 </Text>
 
                 <Pressable
-                  className={`border-2 px-6 py-2 ${
+                  className={`border px-6 py-2 ${
                     isMessageValid && !isLoading
                       ? 'border-black bg-black'
                       : 'border-gray-300 bg-gray-100'
@@ -306,7 +306,7 @@ export default function ConnectionDetailsPage() {
                   onPress={handleSend}
                   disabled={!isMessageValid || isLoading}>
                   <Text
-                    className={`font-bold ${
+                    className={`font-playfair ${
                       isMessageValid && !isLoading ? 'text-white' : 'text-gray-400'
                     }`}>
                     {isLoading ? 'Sending...' : 'Send Chronicle'}

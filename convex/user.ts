@@ -326,6 +326,16 @@ export const getUrl = mutation({
   },
 });
 
+export const getUserByClerkId = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, { clerkId }) => {
+    return await ctx.db
+      .query('user')
+      .withIndex('by_clerkId', (q) => q.eq('clerkId', clerkId))
+      .unique();
+  },
+});
+
 export const getUserByUsername = query({
   args: { search: v.string() },
   handler: async (ctx, { search }) => {
