@@ -108,8 +108,6 @@ export const OnboardingProvider = ({ children }: OnboardingProviderProps) => {
         username,
       } = dataToUpdate;
 
-      console.log('Updating user profile in Convex:', dataToUpdate);
-
       // Set username first
       if (username) {
         await setUsername({ username });
