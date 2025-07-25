@@ -1,3 +1,4 @@
+// @convex/schema.ts
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
@@ -33,12 +34,15 @@ export default defineSchema({
       v.object({
         minAge: v.number(),
         maxAge: v.number(),
-        maxDistance: v.optional(v.number()),
-        preferredLanguages: v.optional(v.array(v.string())),
-        gender: v.optional(
-          v.union(v.literal('male'), v.literal('female'), v.literal('non-binary'), v.literal('any'))
+        maxDistance: v.number(), // Make this required to ensure it's saved
+        preferredLanguages: v.array(v.string()),
+        gender: v.union(
+          v.literal('male'),
+          v.literal('female'),
+          v.literal('non-binary'),
+          v.literal('any')
         ),
-        interests: v.optional(v.array(v.string())),
+        interests: v.array(v.string()),
       })
     ),
   })
@@ -47,7 +51,6 @@ export default defineSchema({
     .index('by_country', ['country'])
     .index('by_username', ['username']),
 
-  //firstuser and seconduser id combo is unique
   connection: defineTable({
     firstUserId: v.id('user'),
     secondUserId: v.id('user'),

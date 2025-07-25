@@ -1,4 +1,3 @@
-// app/(onboarding)/user-preferences.tsx
 import React, { useState } from 'react';
 import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -13,10 +12,8 @@ export default function PreferencesScreen() {
   const { userData, setUserData, handleUpdateUserData } = useOnboarding();
   const router = useRouter();
 
-  // Local state for preferences, initialized from context
   const [preferences, setPreferences] = useState<Preferences>(userData.preferences);
 
-  // Handler to update a specific preference field
   const updatePreference = (key: PreferenceKey, value: Preferences[PreferenceKey]) => {
     setPreferences((prev: Preferences) => ({ ...prev, [key]: value }));
   };
@@ -33,18 +30,19 @@ export default function PreferencesScreen() {
     updatePreference(key, newList);
   };
 
-  const handleFinish = () => {
-    // Update the main context
-    setUserData({
-      ...userData,
-      preferences,
-    });
+  const handleFinish = async () => {
+    try {
+      setUserData({
+        ...userData,
+        preferences,
+      });
 
-    // Here you would typically make the final API call to save all onboarding data
-    handleUpdateUserData();
-
-    // Navigate to the main app screen
-    router.replace('/(protected)/(tabs)');
+      await handleUpdateUserData();
+      router.replace('/(protected)/(tabs)');
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      // Handle error (show alert, etc.)
+    }
   };
 
   return (

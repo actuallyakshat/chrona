@@ -62,7 +62,7 @@ export default function LanguagesAndInterests() {
       interests: selectedInterests,
     });
     // Navigate to the next screen, e.g., preferences
-    router.push('/(protected)/(onboarding)/connection-preferences');
+    router.push('/(protected)/(onboarding)/username-bio');
   };
 
   return (

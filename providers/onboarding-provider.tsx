@@ -1,9 +1,10 @@
+// @providers/onboarding-provider.tsx
 import React, { createContext, useContext, ReactNode, useState, useRef, useEffect } from 'react';
 import useUser from '~/hooks/useUser';
 import { useMutation } from 'convex/react';
-import { api } from '~/convex/_generated/api'; // Assuming this path to your generated API
+import { api } from '~/convex/_generated/api';
+import { Alert } from 'react-native'; // Add this import
 
-// --- Enums and Interfaces (as provided in your original code) ---
 export enum Gender {
   Male = 'male',
   Female = 'female',
@@ -15,7 +16,7 @@ export type Preferences = {
   minAge: number;
   maxAge: number;
   maxDistance: number;
-  gender: Gender; // Ensure this matches the schema
+  gender: Gender;
   preferredLanguages: string[];
   interests: string[];
 };
@@ -25,24 +26,20 @@ interface OnboardingUserData {
   imageUrl: string;
   bio: string;
   age: number;
-  dateOfBirth: string; // Added this as per your original userData structure
+  dateOfBirth: string;
   city: string;
   country: string;
-
   location: {
     latitude: number;
     longitude: number;
   };
-
-  gender: Gender | null; // This is the user's *own* gender, not preference
-
+  gender: Gender | null;
   languagesSpoken: string[];
   interests: string[];
-
+  username: string;
   preferences: Preferences;
 }
 
-// --- Context Type ---
 type OnboardingContextType = {
   userData: OnboardingUserData;
   setUserData: (userData: OnboardingUserData) => void;
@@ -55,53 +52,46 @@ interface OnboardingProviderProps {
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
-// --- OnboardingProvider Component ---
 export const OnboardingProvider = ({ children }: OnboardingProviderProps) => {
   const { user } = useUser();
-  // Initialize the Convex mutation
   const completeOnboardingProfile = useMutation(api.user.completeOnboardingProfile);
+  const setUsername = useMutation(api.user.setUsername);
 
   const [userData, setUserData] = useState<OnboardingUserData>({
-    // Initialize with default values or values from `useUser`
     age: 0,
     bio: '',
     city: '',
     country: '',
-    gender: null, // User's own gender, not a preference initially
+    gender: null,
     imageUrl: user?.imageUrl || '',
-    interests: [], // User's own interests
-    languagesSpoken: [], // User's own languages
+    interests: [],
+    languagesSpoken: [],
     location: {
       latitude: 0,
       longitude: 0,
     },
     name: user?.name || '',
-    dateOfBirth: user?.dateOfBirth || '',
-
-    // Pen Pal Preferences (default values)
+    dateOfBirth: '',
+    username: '',
     preferences: {
       minAge: 18,
       maxAge: 99,
-      maxDistance: 1000, // Default to 1000 km
-      gender: Gender.Any, // Default to any gender for preferences
+      maxDistance: 1000,
+      gender: Gender.Any,
       preferredLanguages: [],
       interests: [],
     },
   });
 
-  // Keep the ref updated with the latest userData
   const userDataRef = useRef<OnboardingUserData>(userData);
   useEffect(() => {
     userDataRef.current = userData;
   }, [userData]);
 
-  /**
-   * Handles updating the user's profile and preferences in the database via Convex.
-   * This is called on the final step of onboarding, and always uses the latest userData from state.
-   */
   async function handleUpdateUserData() {
     const dataToUpdate = userDataRef.current;
     if (!dataToUpdate) return;
+
     try {
       const {
         bio,
@@ -115,8 +105,17 @@ export const OnboardingProvider = ({ children }: OnboardingProviderProps) => {
         interests,
         dateOfBirth,
         name,
+        username,
       } = dataToUpdate;
 
+      console.log('Updating user profile in Convex:', dataToUpdate);
+
+      // Set username first
+      if (username) {
+        await setUsername({ username });
+      }
+
+      // Then complete onboarding profile
       await completeOnboardingProfile({
         bio,
         gender: gender || Gender.Any,
@@ -132,15 +131,22 @@ export const OnboardingProvider = ({ children }: OnboardingProviderProps) => {
           minAge: preferences.minAge,
           maxAge: preferences.maxAge,
           maxDistance: preferences.maxDistance,
-          gender: preferences.gender || Gender.Any,
+          gender: preferences.gender,
           preferredLanguages: preferences.preferredLanguages,
           interests: preferences.interests,
         },
       });
-      setUserData(dataToUpdate); // Update local state after successful API call
-    } catch (error) {
+
+      setUserData(dataToUpdate);
+    } catch (error: any) {
       console.error('Failed to update user profile in Convex:', error);
-      throw error;
+
+      // Show alert dialog with error message
+      Alert.alert('Update Failed', error.message || 'Failed to update profile. Please try again.', [
+        { text: 'OK' },
+      ]);
+
+      throw error; // Re-throw to allow caller to handle if needed
     }
   }
 
@@ -151,7 +157,6 @@ export const OnboardingProvider = ({ children }: OnboardingProviderProps) => {
   );
 };
 
-// --- useOnboarding Hook ---
 export const useOnboarding = () => {
   const context = useContext(OnboardingContext);
   if (context === undefined) {

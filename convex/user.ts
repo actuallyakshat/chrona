@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+import { Id } from './_generated/dataModel';
 
 /**
  * Gets the current authenticated user's profile from the database.
@@ -140,7 +141,16 @@ export const completeOnboardingProfile = mutation({
       .unique();
 
     if (!user) {
-      throw new Error('User not found: Cannot update profile.');
+      throw new Error('A user already exists with this Clerk ID.');
+    }
+
+    const userWithUsername = await ctx.db
+      .query('user')
+      .withIndex('by_username', (q) => q.eq('username', identity.subject))
+      .unique();
+
+    if (userWithUsername) {
+      throw new Error('A user already exists with this username.');
     }
 
     // Patch the user document with the new profile information and set isOnboarded to true.
@@ -319,7 +329,16 @@ export const getUrl = mutation({
 export const getUserByUsername = query({
   args: { search: v.string() },
   handler: async (ctx, { search }) => {
-    const currentUser = await ctx.auth.getUserIdentity();
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      throw new Error('Not authenticated: Cannot delete user.');
+    }
+
+    const currentUser = await ctx.db
+      .query('user')
+      .withIndex('by_clerkId', (q) => q.eq('clerkId', identity.subject))
+      .unique();
 
     if (!currentUser) return [];
 
