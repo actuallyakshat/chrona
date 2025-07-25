@@ -28,3 +28,23 @@ export function formatDeliveryTime(hours: number): string {
   const weeks = Math.round(days / 7);
   return `${weeks} week${weeks === 1 ? '' : 's'}`;
 }
+
+export function getDeliveryInfo(chronicle: any, delayInHours: number) {
+  const sentAt = new Date(chronicle.sentAt);
+  const deliveryTime = new Date(sentAt.getTime() + delayInHours * 60 * 60 * 1000);
+  const now = new Date();
+  const msLeft = deliveryTime.getTime() - now.getTime();
+
+  if (msLeft <= 0) {
+    return { delivered: true, timeLeft: null };
+  }
+
+  const totalMinutes = Math.floor(msLeft / (1000 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return {
+    delivered: false,
+    timeLeft: `${hours}h ${minutes}m`,
+  };
+}

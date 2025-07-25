@@ -64,6 +64,17 @@ export const recommend = mutation({
     const viewer = await ctx.db.get(viewerId);
     if (!viewer) return [];
 
+    const today = new Date().toISOString().split('T')[0];
+    const lastDate = viewer.lastRecommendationDate
+      ? new Date(viewer.lastRecommendationDate).toISOString().split('T')[0]
+      : null;
+
+    if (lastDate === today && viewer.recommended && viewer.recommended.length > 0) {
+      const todaysIds = viewer.recommended.slice(Math.max(viewer.recommended.length - 3, 0));
+      const recommendedUsers = await Promise.all(todaysIds.map((id) => ctx.db.get(id)));
+      return recommendedUsers.filter((u): u is User => u !== null);
+    }
+
     const pref = viewer.preferences ?? {
       minAge: 18,
       maxAge: 99,
@@ -76,12 +87,28 @@ export const recommend = mutation({
     // 1. grab everybody
     const allUsers = await ctx.db.query('user').collect();
 
-    // 2. filter out self & already recommended
+    // 2. get connected user IDs
+    const connectionsAsFirst = await ctx.db
+      .query('connection')
+      .withIndex('by_firstUserId', (q) => q.eq('firstUserId', viewerId))
+      .collect();
+    const connectionsAsSecond = await ctx.db
+      .query('connection')
+      .withIndex('by_secondUserId', (q) => q.eq('secondUserId', viewerId))
+      .collect();
+
+    const connectedUserIds = new Set([
+      ...connectionsAsFirst.map((c) => c.secondUserId),
+      ...connectionsAsSecond.map((c) => c.firstUserId),
+    ]);
+
+    // 3. filter out self, already recommended, and connected users
     const pool = allUsers.filter(
-      (u) => u._id !== viewerId && !viewer?.recommended?.includes(u._id)
+      (u) =>
+        u._id !== viewerId && !viewer?.recommended?.includes(u._id) && !connectedUserIds.has(u._id) // Exclude connected users
     );
 
-    // 3. exact‐match pass
+    // 4. exact‐match pass
     const exact = pool.filter((u) => {
       if (u.age !== undefined && (u.age < pref.minAge || u.age > pref.maxAge)) return false;
       if (pref.gender !== 'any' && u.gender !== pref.gender) return false;
@@ -106,7 +133,7 @@ export const recommend = mutation({
       return true;
     });
 
-    // 4. if exact < 3, broaden to `pool`
+    // 5. if exact < 3, broaden to `pool`
     const candidates = exact.length >= 3 ? exact : pool;
     const viewerLoc = viewer.location
       ? {
@@ -119,18 +146,18 @@ export const recommend = mutation({
       .map((u) => ({ user: u, score: similarity(u, pref, viewerLoc) }))
       .sort((a, b) => b.score - a.score);
 
-    // 5. pick top 3 at random from top‐20
+    // 6. pick top 3 at random from top‐20
     const top20 = scored.slice(0, 20);
     top20.sort(() => Math.random() - 0.5);
     const top3 = top20.slice(0, 3).map((s) => s.user);
 
-    // If first time, update recommended and lastRecommendationDate
-    if (!viewer.recommended || viewer.recommended.length === 0) {
-      await ctx.db.patch(viewerId, {
-        recommended: top3.map((u) => u._id),
-        lastRecommendationDate: new Date().toISOString(),
-      });
-    }
+    const newRecommendedIds = top3.map((u) => u._id);
+    const allRecommended = [...(viewer.recommended ?? []), ...newRecommendedIds];
+
+    await ctx.db.patch(viewerId, {
+      recommended: allRecommended,
+      lastRecommendationDate: new Date().toISOString(),
+    });
 
     return top3;
   },

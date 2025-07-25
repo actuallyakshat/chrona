@@ -6,7 +6,9 @@ export default defineSchema({
     clerkId: v.string(),
     email: v.string(),
     name: v.string(),
+    username: v.optional(v.string()),
     imageUrl: v.optional(v.string()),
+    storageId: v.optional(v.string()),
     isOnboarded: v.boolean(),
     bio: v.optional(v.string()),
     age: v.optional(v.number()),
@@ -24,32 +26,46 @@ export default defineSchema({
     ),
     languagesSpoken: v.optional(v.array(v.string())),
     interests: v.optional(v.array(v.string())),
-    // <— store real user‐Ids, not plain strings
-    recommended: v.optional(v.array(v.id('user'))),
+    // Fields for recommendation system
     lastRecommendationDate: v.optional(v.string()),
+    recommended: v.optional(v.array(v.id('user'))),
     preferences: v.optional(
       v.object({
         minAge: v.number(),
         maxAge: v.number(),
         maxDistance: v.optional(v.number()),
         preferredLanguages: v.optional(v.array(v.string())),
-        gender: v.optional(v.string()),
+        gender: v.optional(
+          v.union(v.literal('male'), v.literal('female'), v.literal('non-binary'), v.literal('any'))
+        ),
         interests: v.optional(v.array(v.string())),
       })
     ),
   })
     .index('by_clerkId', ['clerkId'])
     .index('by_age', ['age'])
-    .index('by_country', ['country']),
+    .index('by_country', ['country'])
+    .index('by_username', ['username']),
 
-  chronicles: defineTable({
+  //firstuser and seconduser id combo is unique
+  connection: defineTable({
+    firstUserId: v.id('user'),
+    secondUserId: v.id('user'),
+    pairKey: v.string(),
+    delayInHours: v.number(),
+    chronicles: v.array(v.id('chronicle')),
+    lastChronicleSentAt: v.optional(v.string()),
+  })
+    .index('by_pairKey', ['pairKey'])
+    .index('by_firstUserId', ['firstUserId'])
+    .index('by_secondUserId', ['secondUserId'])
+    .index('by_lastChronicleSentAt', ['lastChronicleSentAt']),
+
+  chronicle: defineTable({
     sender: v.id('user'),
     receiver: v.id('user'),
     content: v.string(),
-    sentAt: v.optional(v.number()),
-    status: v.union(v.literal('sending'), v.literal('delivered'), v.literal('read')),
-  })
-    .index('by_receiver_and_status', ['receiver', 'status'])
-    .index('by_sender', ['sender'])
-    .index('by_arrival_and_status', ['status', 'sentAt']),
+    sentAt: v.string(), // timestamp
+    connectionId: v.id('connection'),
+  }).index('by_connectionId', ['connectionId']),
 });

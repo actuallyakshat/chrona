@@ -11,16 +11,14 @@ export enum Gender {
   Any = 'any',
 }
 
-export interface Preferences {
+export type Preferences = {
   minAge: number;
   maxAge: number;
-  maxDistance: number; // in km
-  gender: Gender | null;
+  maxDistance: number;
+  gender: Gender; // Ensure this matches the schema
   preferredLanguages: string[];
   interests: string[];
-  // Assuming preferredCountries might be added later, currently optional in Convex args
-  // preferredCountries?: string[];
-}
+};
 
 interface OnboardingUserData {
   name: string;
@@ -118,6 +116,7 @@ export const OnboardingProvider = ({ children }: OnboardingProviderProps) => {
         dateOfBirth,
         name,
       } = dataToUpdate;
+
       await completeOnboardingProfile({
         bio,
         gender: gender || Gender.Any,
@@ -129,7 +128,6 @@ export const OnboardingProvider = ({ children }: OnboardingProviderProps) => {
         interests,
         dateOfBirth,
         name,
-
         preferences: {
           minAge: preferences.minAge,
           maxAge: preferences.maxAge,
@@ -139,7 +137,6 @@ export const OnboardingProvider = ({ children }: OnboardingProviderProps) => {
           interests: preferences.interests,
         },
       });
-      console.log('User profile updated successfully via Convex!');
       setUserData(dataToUpdate); // Update local state after successful API call
     } catch (error) {
       console.error('Failed to update user profile in Convex:', error);

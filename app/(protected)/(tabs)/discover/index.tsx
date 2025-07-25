@@ -39,7 +39,6 @@ export default function DiscoverPage() {
         setLoading(false);
       });
   }, [viewerId, recommend]);
-
   return (
     <View className="flex-1 bg-background">
       <ScrollView className="flex-1 gap-3 px-4 py-3">
@@ -66,7 +65,7 @@ export default function DiscoverPage() {
             return (
               <UserRecommendationCard
                 key={user._id}
-                userId={user._id}
+                userId={user.clerkId}
                 imageUrl={user.imageUrl}
                 name={user.name}
                 age={user.age}
@@ -185,7 +184,13 @@ export function UserRecommendationCard({
         className="mt-5 w-full items-center justify-center bg-black py-2"
         href={{
           pathname: '/connections/[id]',
-          params: { id: userId, name, imageUrl: imageUrl ?? undefined },
+          params: {
+            id: -1,
+            name,
+            imageUrl: imageUrl ?? undefined,
+            fresh: 'true',
+            recipientUserId: userId,
+          },
         }}>
         <Text className="text-center text-sm font-bold text-white">Establish Connection</Text>
       </Link>

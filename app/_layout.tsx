@@ -1,6 +1,6 @@
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { tokenCache } from '@clerk/clerk-expo/token-cache';
-import { Slot, SplashScreen } from 'expo-router';
+import { Slot, SplashScreen, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import '../global.css';
 import { useSyncQueriesExternal } from 'react-query-external-sync';
@@ -49,7 +49,8 @@ import { Platform } from 'react-native';
 SplashScreen.preventAutoHideAsync();
 
 function InitialLayout() {
-  const { isLoaded } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
+  const router = useRouter();
 
   const [loadedPlayfair] = useFonts({
     PlayfairDisplay_400Regular,
@@ -87,7 +88,13 @@ function InitialLayout() {
     if (isReady) {
       SplashScreen.hideAsync();
     }
-  }, [isReady]);
+
+    if (isReady && !isSignedIn) {
+      router.replace('/(public)/signin');
+    } else if (isReady && isSignedIn) {
+      router.replace('/(protected)/(tabs)');
+    }
+  }, [isReady, isSignedIn, router]);
 
   return <Slot />;
 }

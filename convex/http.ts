@@ -11,8 +11,6 @@ const handleClerkWebhook = httpAction(async (ctx, request) => {
       return new Response('Invalid webhook payload', { status: 400 });
     }
 
-    console.log('Received Clerk event:', event.type);
-
     switch (event.type) {
       case 'user.created': {
         const user = event.data;
@@ -25,17 +23,14 @@ const handleClerkWebhook = httpAction(async (ctx, request) => {
               : user.first_name || user.last_name || '',
           imageUrl: user.image_url || undefined,
         });
-        console.log('User created:', user.id);
         break;
       }
       case 'user.deleted': {
         const user = event.data;
         await ctx.runMutation(api.user.deleteUserFromWebhook, { clerkId: user.id });
-        console.log('User deleted:', user.id);
         break;
       }
       default:
-        console.log('Unhandled event:', event.type);
     }
 
     return new Response(null, { status: 200 });

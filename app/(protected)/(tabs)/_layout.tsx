@@ -2,14 +2,12 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import Entypo from '@expo/vector-icons/Entypo';
 import { Tabs } from 'expo-router';
-import CustomHeader from '~/components/CustomHeader';
+import { Fragment } from 'react/jsx-runtime';
 import colors from '~/constants/colors';
-import { HeaderProvider } from '~/providers/header-provider';
 
 export default function TabsLayout() {
   return (
-    <HeaderProvider>
-      <CustomHeader />
+    <Fragment>
       <Tabs
         screenOptions={{
           tabBarStyle: {
@@ -60,6 +58,6 @@ export default function TabsLayout() {
           }}
         />
       </Tabs>
-    </HeaderProvider>
+    </Fragment>
   );
 }

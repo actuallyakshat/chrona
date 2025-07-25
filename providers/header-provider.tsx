@@ -1,9 +1,10 @@
-
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, ReactElement } from 'react';
 
 interface HeaderState {
   title: string;
   imageUrl?: string;
+  userId?: string;
+  rightComponent?: ReactElement;
 }
 
 interface HeaderContextType {

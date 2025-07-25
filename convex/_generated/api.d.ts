@@ -13,6 +13,9 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as chronicle from "../chronicle.js";
+import type * as connection from "../connection.js";
+import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as recommendation from "../recommendation.js";
 import type * as user from "../user.js";
@@ -26,6 +29,9 @@ import type * as user from "../user.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  chronicle: typeof chronicle;
+  connection: typeof connection;
+  files: typeof files;
   http: typeof http;
   recommendation: typeof recommendation;
   user: typeof user;

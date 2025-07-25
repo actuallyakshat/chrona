@@ -1,6 +1,6 @@
-import { useSSO } from '@clerk/clerk-expo';
+import { useAuth, useSSO } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
+import { Link, Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, SafeAreaView, View } from 'react-native';
 import { StyledText } from '~/components/StyledText';
@@ -9,12 +9,14 @@ export default function Signin() {
   const { startSSOFlow } = useSSO();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const { isSignedIn, isLoaded } = useAuth();
 
   const handleSSO = async (strategy: 'oauth_apple' | 'oauth_google' | 'oauth_facebook') => {
     try {
       setIsLoading(strategy);
-      const { createdSessionId } = await startSSOFlow({ strategy });
-      if (createdSessionId) {
+      const { createdSessionId, setActive } = await startSSOFlow({ strategy });
+      if (createdSessionId && setActive) {
+        setActive({ session: createdSessionId });
         router.replace('/(protected)/(tabs)');
       }
     } catch (error) {
@@ -25,6 +27,14 @@ export default function Signin() {
     }
   };
 
+  if (!isLoaded) {
+    return null;
+  }
+
+  if (isLoaded && isSignedIn) {
+    return <Redirect href="/(protected)/(tabs)" />;
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1 justify-between px-6 py-12">
@@ -33,7 +43,7 @@ export default function Signin() {
           <StyledText className="font-playfair text-5xl tracking-tighter text-black">
             Welcome Back
           </StyledText>
-          <StyledText className="font-inter mt-4 text-center text-lg tracking-tighter text-zinc-600">
+          <StyledText className="mt-4 text-center font-inter text-lg tracking-tighter text-zinc-600">
             Continue your journey of meaningful connections
           </StyledText>
         </View>
@@ -45,7 +55,7 @@ export default function Signin() {
             disabled={isLoading !== null}
             className="flex-row items-center justify-center rounded-2xl border border-zinc-200 bg-black px-6 py-4 active:bg-zinc-800">
             <Ionicons name="logo-apple" size={24} color="white" />
-            <StyledText className="font-inter ml-3 text-lg font-medium text-white">
+            <StyledText className="ml-3 font-inter text-lg font-medium text-white">
               {isLoading === 'oauth_apple' ? 'Signing in...' : 'Continue with Apple'}
             </StyledText>
           </Pressable>
@@ -55,7 +65,7 @@ export default function Signin() {
             disabled={isLoading !== null}
             className="flex-row items-center justify-center rounded-2xl border border-zinc-200 bg-white px-6 py-4 active:bg-zinc-50">
             <Ionicons name="logo-google" size={24} color="#4285F4" />
-            <StyledText className="font-inter ml-3 text-lg font-medium text-black">
+            <StyledText className="ml-3 font-inter text-lg font-medium text-black">
               {isLoading === 'oauth_google' ? 'Signing in...' : 'Continue with Google'}
             </StyledText>
           </Pressable>
@@ -65,7 +75,7 @@ export default function Signin() {
             disabled={isLoading !== null}
             className="flex-row items-center justify-center rounded-2xl border border-zinc-200 bg-[#1877F2] px-6 py-4 active:bg-[#166FE5]">
             <Ionicons name="logo-facebook" size={24} color="white" />
-            <StyledText className="font-inter ml-3 text-lg font-medium text-white">
+            <StyledText className="ml-3 font-inter text-lg font-medium text-white">
               {isLoading === 'oauth_facebook' ? 'Signing in...' : 'Continue with Facebook'}
             </StyledText>
           </Pressable>
@@ -84,7 +94,7 @@ export default function Signin() {
             </Link>
           </View>
 
-          <StyledText className="font-inter text-center text-sm text-zinc-500">
+          <StyledText className="text-center font-inter text-sm text-zinc-500">
             By continuing, you agree to our Terms of Service and Privacy Policy
           </StyledText>
         </View>
