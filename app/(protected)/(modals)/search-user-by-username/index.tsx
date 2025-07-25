@@ -12,7 +12,7 @@ export default function SearchUserByUsername() {
   const router = useRouter();
 
   const handlePress = (user: (typeof results)[0]) => {
-    router.push({
+    router.replace({
       pathname: '/connections/[id]',
       params: {
         id: user._id,
