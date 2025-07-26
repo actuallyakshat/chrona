@@ -1,9 +1,8 @@
 import { api } from 'convex/_generated/api';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, ScrollView, Text, View } from 'react-native';
-import { Button } from '~/components/Button';
 import useUser from '~/hooks/useUser';
 import { calculateDeliveryTimeHours, formatDeliveryTime } from '~/utils/deliveryTime';
 
@@ -12,6 +11,10 @@ export default function DiscoverPage() {
   const viewerId = viewer?._id;
 
   const recommend = useMutation(api.recommendation.recommend);
+  const connections = useQuery(
+    api.connection.listConnections,
+    viewerId ? { userId: viewerId } : 'skip'
+  );
 
   const [recommendations, setRecommendations] = useState<any[] | undefined>(undefined);
   const [loading, setLoading] = useState(false);
@@ -39,6 +42,36 @@ export default function DiscoverPage() {
         setLoading(false);
       });
   }, [viewerId, recommend]);
+
+  // Create a set of connected user IDs for quick lookup
+  const connectedUserIds = new Set(
+    connections?.map((conn) =>
+      conn.firstUserId === viewerId ? conn.secondUserId : conn.firstUserId
+    ) || []
+  );
+
+  // Check if all recommendations are connected
+  const allRecommendedConnected = recommendations
+    ? recommendations.every((rec) => connectedUserIds.has(rec._id))
+    : false;
+
+  // Calculate time until next recommendation (next midnight)
+  const getTimeUntilMidnight = () => {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0); // Next midnight
+    const diff = midnight.getTime() - now.getTime();
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    return { hours, minutes };
+  };
+
+  const { hours, minutes } = getTimeUntilMidnight();
+  const showTimeMessage = allRecommendedConnected && recommendations?.length === 3;
+  const showNoRecommendations = recommendations?.length === 0 && !loading && !showTimeMessage;
+
   return (
     <View className="flex-1 bg-background">
       <ScrollView className="flex-1 gap-3 px-4 py-3">
@@ -46,13 +79,27 @@ export default function DiscoverPage() {
           Here are three recommended companions for you to connect with. You can establish a
           connection by sending the initial chronicle.
         </Text>
+
+        {showTimeMessage ? (
+          <View className="mb-5 rounded-lg bg-blue-50 p-4">
+            <Text className="text-center text-zinc-800">
+              You've connected with all today's recommendations. Check again after{' '}
+              <Text className="font-bold">
+                {hours}h {minutes}m
+              </Text>
+            </Text>
+          </View>
+        ) : null}
+
         <View className="flex flex-wrap items-center gap-4 pb-3">
           {loading && <Text className="text-zinc-500">Loading...</Text>}
           {error && <Text className="text-red-500">{error}</Text>}
-          {recommendations?.length === 0 && !loading && (
+          {showNoRecommendations && (
             <Text className="text-zinc-500">No recommendations found.</Text>
           )}
           {recommendations?.map((user) => {
+            const isAlreadyConnected = connectedUserIds.has(user._id);
+
             let deliveryTime: string | null = null;
             if (viewerLoc && user.location && user.location.latitude && user.location.longitude) {
               const userLoc = {
@@ -75,6 +122,7 @@ export default function DiscoverPage() {
                 languagesSpoken={user.languagesSpoken}
                 interests={user.interests}
                 deliveryTime={deliveryTime}
+                isAlreadyConnected={isAlreadyConnected}
               />
             );
           })}
@@ -95,6 +143,7 @@ type UserRecommendationCardProps = {
   languagesSpoken?: string[] | null;
   interests?: string[] | null;
   deliveryTime?: string | null;
+  isAlreadyConnected?: boolean;
 };
 
 export function UserRecommendationCard({
@@ -108,9 +157,11 @@ export function UserRecommendationCard({
   languagesSpoken,
   interests,
   deliveryTime,
+  isAlreadyConnected = false,
 }: UserRecommendationCardProps) {
   return (
-    <View className="w-full border bg-white px-4 pb-2 pt-4 shadow-sm">
+    <View
+      className={`w-full border bg-white px-4 pb-2 pt-4 shadow-sm ${isAlreadyConnected ? 'opacity-70' : ''}`}>
       {/* Header */}
       <View className="flex-row items-start gap-3">
         <Image
@@ -180,20 +231,26 @@ export function UserRecommendationCard({
         </View>
       )}
 
-      <Link
-        className="mt-5 w-full items-center justify-center bg-black py-2"
-        href={{
-          pathname: '/connections/[id]',
-          params: {
-            id: -1,
-            name,
-            imageUrl: imageUrl ?? undefined,
-            fresh: 'true',
-            recipientUserId: userId,
-          },
-        }}>
-        <Text className="text-center text-sm font-bold text-white">Establish Connection</Text>
-      </Link>
+      {isAlreadyConnected ? (
+        <View className="mt-5 w-full items-center justify-center bg-gray-300 py-2">
+          <Text className="text-center text-sm font-bold text-gray-600">Connection Added</Text>
+        </View>
+      ) : (
+        <Link
+          className="mt-5 w-full items-center justify-center bg-black py-2"
+          href={{
+            pathname: '/connections/[id]',
+            params: {
+              id: -1,
+              name,
+              imageUrl: imageUrl ?? undefined,
+              fresh: 'true',
+              recipientUserId: userId,
+            },
+          }}>
+          <Text className="text-center text-sm font-bold text-white">Establish Connection</Text>
+        </Link>
+      )}
     </View>
   );
 }

@@ -72,7 +72,23 @@ export const recommend = mutation({
     if (lastDate === today && viewer.recommended && viewer.recommended.length > 0) {
       const todaysIds = viewer.recommended.slice(Math.max(viewer.recommended.length - 3, 0));
       const recommendedUsers = await Promise.all(todaysIds.map((id) => ctx.db.get(id)));
-      return recommendedUsers.filter((u): u is User => u !== null);
+
+      // Filter out any users that are now connections
+      const connectionsAsFirst = await ctx.db
+        .query('connection')
+        .withIndex('by_firstUserId', (q) => q.eq('firstUserId', viewerId))
+        .collect();
+      const connectionsAsSecond = await ctx.db
+        .query('connection')
+        .withIndex('by_secondUserId', (q) => q.eq('secondUserId', viewerId))
+        .collect();
+
+      const connectedUserIds = new Set([
+        ...connectionsAsFirst.map((c) => c.secondUserId),
+        ...connectionsAsSecond.map((c) => c.firstUserId),
+      ]);
+
+      return recommendedUsers.filter((u): u is User => u !== null && !connectedUserIds.has(u._id));
     }
 
     const pref = viewer.preferences ?? {

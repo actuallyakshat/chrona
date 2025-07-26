@@ -157,3 +157,20 @@ export const getConnectionWithChronicles = query({
     };
   },
 });
+
+export const listConnections = query({
+  args: { userId: v.id('user') },
+  handler: async (ctx, { userId }) => {
+    const connectionsAsFirst = await ctx.db
+      .query('connection')
+      .withIndex('by_firstUserId', (q) => q.eq('firstUserId', userId))
+      .collect();
+
+    const connectionsAsSecond = await ctx.db
+      .query('connection')
+      .withIndex('by_secondUserId', (q) => q.eq('secondUserId', userId))
+      .collect();
+
+    return [...connectionsAsFirst, ...connectionsAsSecond];
+  },
+});
