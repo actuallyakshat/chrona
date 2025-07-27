@@ -1,3 +1,4 @@
+// app/connections/[id].tsx
 import { useAuth } from '@clerk/clerk-expo';
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
@@ -10,13 +11,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import { useHeader } from '~/providers/header-provider';
 import { getDeliveryInfo } from '~/utils/deliveryTime';
-
+// import { BlurView } from 'expo-blur';
+import { BlurView } from '@react-native-community/blur';
 const MIN_WORDS = 50;
 
 export default function ConnectionDetailsPage() {
@@ -71,9 +74,6 @@ export default function ConnectionDetailsPage() {
     );
     return sorted;
   }, [data]);
-
-  const lastMessage = chronicles.length > 0 ? chronicles[chronicles.length - 1] : null;
-  const isLastMessageFromCurrentUser = lastMessage?.sender === me?._id;
 
   // Send message handler
   const handleSend = async () => {
@@ -235,24 +235,69 @@ export default function ConnectionDetailsPage() {
           contentContainerStyle={{ padding: 16 }}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
-            const isSender = item.sender === me?._id; // ✅ correct comparison
+            const isSender = item.sender === me?._id;
             const delayInHours = data?.connection?.delayInHours ?? 0;
             const delivery = getDeliveryInfo(item, delayInHours);
+            const shouldBlur = !delivery.delivered && !isSender;
+
+            const displayContent = item.content;
 
             return (
               <View
                 className={`mb-6 max-w-[85%] border-[0.7px] border-black p-4 ${
                   isSender ? 'self-end bg-black' : 'self-start bg-white'
-                }`}>
-                <Text
-                  className={`font-inter text-base leading-6 tracking-tighter ${isSender ? 'text-white' : 'text-black'}`}>
-                  {item.content}
-                </Text>
-                <Text className={`mt-3 text-xs ${isSender ? 'text-gray-300' : 'text-gray-500'}`}>
-                  {delivery.delivered
-                    ? `Delivered • ${new Date(item.sentAt).toLocaleDateString()}`
-                    : `In Transit • Arrives in ${delivery.timeLeft}`}
-                </Text>
+                } overflow-hidden`} // overflow-hidden to clip blur
+                style={{ position: 'relative' }}>
+                {/* 1. Render the content (message + status) */}
+                <View>
+                  <Text
+                    className={`font-inter text-base leading-6 tracking-tighter ${
+                      isSender ? 'text-white' : 'text-black'
+                    }`}
+                    style={{ minHeight: 24 }}>
+                    {displayContent}
+                  </Text>
+                  <Text className={`mt-3 text-xs ${isSender ? 'text-gray-300' : 'text-gray-500'}`}>
+                    {delivery.delivered
+                      ? `Delivered • ${new Date(item.sentAt).toLocaleDateString()}`
+                      : `In Transit • Arrives in ${delivery.timeLeft}`}
+                  </Text>
+                </View>
+
+                {/* 2. Blur overlay */}
+                {shouldBlur && (
+                  <BlurView
+                    style={StyleSheet.absoluteFillObject}
+                    blurType="light"
+                    blurAmount={3}
+                    reducedTransparencyFallbackColor="white"
+                  />
+                )}
+
+                {/* 3. Render the status text again, absolutely positioned at the bottom */}
+                {shouldBlur && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: 16, // match your padding
+                      right: 16,
+                      bottom: 12, // match your margin/padding
+                    }}
+                    pointerEvents="none" // so it doesn't block touches
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        isSender ? 'text-gray-300' : 'text-gray-500'
+                      }`}
+                      style={{
+                        textShadowColor: 'rgba(255,255,255,0.7)',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 2,
+                      }}>
+                      {`In Transit • Arrives in ${delivery.timeLeft}`}
+                    </Text>
+                  </View>
+                )}
               </View>
             );
           }}
@@ -260,61 +305,85 @@ export default function ConnectionDetailsPage() {
 
         {/* Message Input Area */}
         {me && data ? (
-          isLastMessageFromCurrentUser ? (
-            <View className="border-t-[0.6px] border-black bg-white p-6 text-center">
-              <Text className="font-playfair text-base tracking-tighter text-gray-600">
-                Meaningful conversation is a two-way street. Wait for {name} to reply before sending
-                another chronicle.
-              </Text>
-            </View>
-          ) : (
-            <View className="border-t-[0.7px] border-black bg-white p-4">
-              <Text className="mb-2 font-playfair text-sm font-medium text-black">
-                Write Your Reply ({wordCount}/{MIN_WORDS} words minimum)
-              </Text>
+          (() => {
+            // Find the last message and its delivery info
+            const lastChronicle = chronicles.length > 0 ? chronicles[chronicles.length - 1] : null;
+            const lastDelivery = lastChronicle
+              ? getDeliveryInfo(lastChronicle, data?.connection?.delayInHours ?? 0)
+              : null;
+            const isLastFromMe = lastChronicle?.sender === me?._id;
+            const isLastPendingFromOther =
+              lastChronicle && !isLastFromMe && lastDelivery && !lastDelivery.delivered;
 
-              <View className="mb-3">
-                <TextInput
-                  className="min-h-[100px] border-[0.7px] border-black bg-white p-3 text-base text-black"
-                  value={message}
-                  onChangeText={setMessage}
-                  placeholder={`Take your time and write at least ${MIN_WORDS} meaningful words...`}
-                  placeholderTextColor="#666"
-                  multiline
-                  textAlignVertical="top"
-                  style={{ fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}
-                />
-              </View>
-
-              {/* Controls Row */}
-              <View className="flex-row items-center justify-between">
-                <Text
-                  className={`text-sm ${
-                    wordCount >= MIN_WORDS ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                  {wordCount < MIN_WORDS
-                    ? `${MIN_WORDS - wordCount} more words needed`
-                    : `Ready to send (${wordCount} words)`}
-                </Text>
-
-                <Pressable
-                  className={`border px-6 py-2 ${
-                    isMessageValid && !isLoading
-                      ? 'border-black bg-black'
-                      : 'border-gray-300 bg-gray-100'
-                  }`}
-                  onPress={handleSend}
-                  disabled={!isMessageValid || isLoading}>
-                  <Text
-                    className={`font-playfair ${
-                      isMessageValid && !isLoading ? 'text-white' : 'text-gray-400'
-                    }`}>
-                    {isLoading ? 'Sending...' : 'Send Chronicle'}
+            if (isLastFromMe) {
+              return (
+                <View className="border-t-[0.6px] border-black bg-white p-6 text-center">
+                  <Text className="font-playfair text-base tracking-tighter text-gray-600">
+                    Meaningful conversation is a two-way street. Wait for {name} to reply before
+                    sending another chronicle.
                   </Text>
-                </Pressable>
+                </View>
+              );
+            }
+
+            if (isLastPendingFromOther) {
+              return (
+                <View className="border-t-[0.6px] border-black bg-white p-6 text-center">
+                  <Text className="font-playfair text-base tracking-tighter text-gray-600">
+                    {name}&apos;s chronicle is on its journey to you. Let&apos;s wait for their
+                    message to arrive before you respond.
+                  </Text>
+                </View>
+              );
+            }
+
+            // Otherwise, show the input area
+            return (
+              <View className="border-t-[0.7px] border-black bg-white p-4">
+                <Text className="mb-2 font-playfair text-sm font-medium text-black">
+                  Write Your Reply ({wordCount}/{MIN_WORDS} words minimum)
+                </Text>
+                <View className="mb-3">
+                  <TextInput
+                    className="min-h-[100px] border-[0.7px] border-black bg-white p-3 text-base text-black"
+                    value={message}
+                    onChangeText={setMessage}
+                    placeholder={`Take your time and write at least ${MIN_WORDS} meaningful words...`}
+                    placeholderTextColor="#666"
+                    multiline
+                    textAlignVertical="top"
+                    style={{ fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}
+                  />
+                </View>
+                {/* Controls Row */}
+                <View className="flex-row items-center justify-between">
+                  <Text
+                    className={`text-sm ${
+                      wordCount >= MIN_WORDS ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                    {wordCount < MIN_WORDS
+                      ? `${MIN_WORDS - wordCount} more words needed`
+                      : `Ready to send (${wordCount} words)`}
+                  </Text>
+                  <Pressable
+                    className={`border px-6 py-2 ${
+                      isMessageValid && !isLoading
+                        ? 'border-black bg-black'
+                        : 'border-gray-300 bg-gray-100'
+                    }`}
+                    onPress={handleSend}
+                    disabled={!isMessageValid || isLoading}>
+                    <Text
+                      className={`font-playfair ${
+                        isMessageValid && !isLoading ? 'text-white' : 'text-gray-400'
+                      }`}>
+                      {isLoading ? 'Sending...' : 'Send Chronicle'}
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
-            </View>
-          )
+            );
+          })()
         ) : (
           <Fragment />
         )}

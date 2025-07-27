@@ -1,6 +1,6 @@
-import { mutation } from './_generated/server';
+import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
-
+import { getDeliveryInfo } from '../utils/deliveryTime';
 export const sendChronicle = mutation({
   args: {
     connectionId: v.id('connection'),
@@ -57,48 +57,5 @@ export const sendChronicle = mutation({
     });
 
     return chronicleId;
-  },
-});
-
-// Optional: Get chronicles for a connection (useful for real-time updates)
-export const getChroniclesForConnection = mutation({
-  args: {
-    connectionId: v.id('connection'),
-  },
-  handler: async (ctx, args) => {
-    const { connectionId } = args;
-
-    // Get the current user's ID from authentication
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error('User must be authenticated');
-    }
-
-    const user = await ctx.db
-      .query('user')
-      .withIndex('by_clerkId', (q) => q.eq('clerkId', identity.subject))
-      .unique();
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    // Verify the user is part of this connection
-    const connection = await ctx.db.get(connectionId);
-    if (!connection) {
-      throw new Error('Connection not found');
-    }
-
-    if (connection.firstUserId !== user._id && connection.secondUserId !== user._id) {
-      throw new Error('User is not part of this connection');
-    }
-
-    // Get all chronicles for this connection
-    const chronicles = await ctx.db
-      .query('chronicle')
-      .withIndex('by_connectionId', (q) => q.eq('connectionId', connectionId))
-      .collect();
-
-    return chronicles;
   },
 });

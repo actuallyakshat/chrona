@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+import { getDeliveryInfo } from '../utils/deliveryTime';
 
 export const createConnection = mutation({
   args: {
@@ -133,27 +134,132 @@ export const getConnections = query({
   },
 });
 
-// Fixed: Remove the invalid index usage
-export const getConnectionWithChronicles = query({
-  args: { id: v.id('connection') },
-  handler: async (ctx, args) => {
-    // 1. Fetch the connection by ID directly
-    const connection = await ctx.db.get(args.id);
+const generateJibberish = (content: string): string => {
+  const wordCount = content.trim().split(/\s+/).length;
+  const jibberishWords = [];
 
+  // Common jibberish words to create realistic-looking placeholder
+  const jibberishVocabulary = [
+    'lorem',
+    'ipsum',
+    'dolor',
+    'sit',
+    'amet',
+    'consectetur',
+    'adipiscing',
+    'elit',
+    'sed',
+    'do',
+    'eiusmod',
+    'tempor',
+    'incididunt',
+    'ut',
+    'labore',
+    'et',
+    'dolore',
+    'magna',
+    'aliqua',
+    'enim',
+    'ad',
+    'minim',
+    'veniam',
+    'quis',
+    'nostrud',
+    'exercitation',
+    'ullamco',
+    'laboris',
+    'nisi',
+    'aliquip',
+    'ex',
+    'ea',
+    'commodo',
+    'consequat',
+    'duis',
+    'aute',
+    'irure',
+    'reprehenderit',
+    'in',
+    'voluptate',
+    'velit',
+    'esse',
+    'cillum',
+    'dolore',
+    'eu',
+    'fugiat',
+    'nulla',
+    'pariatur',
+  ];
+
+  for (let i = 0; i < wordCount; i++) {
+    const randomIndex = Math.floor(Math.random() * jibberishVocabulary.length);
+    jibberishWords.push(jibberishVocabulary[randomIndex]);
+  }
+
+  return jibberishWords.join(' ');
+};
+
+export const getConnectionWithChronicles = query({
+  args: {
+    id: v.id('connection'),
+  },
+  handler: async (ctx, args) => {
+    const { id } = args;
+
+    // Get the current user's ID from authentication
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('User must be authenticated');
+    }
+
+    const user = await ctx.db
+      .query('user')
+      .withIndex('by_clerkId', (q) => q.eq('clerkId', identity.subject))
+      .unique();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Get the connection
+    const connection = await ctx.db.get(id);
     if (!connection) {
       throw new Error('Connection not found');
     }
 
-    // 2. Fetch all chronicles for this connection
+    // Verify the user is part of this connection
+    if (connection.firstUserId !== user._id && connection.secondUserId !== user._id) {
+      throw new Error('User is not part of this connection');
+    }
+
+    // Get all chronicles for this connection
     const chronicles = await ctx.db
       .query('chronicle')
-      .withIndex('by_connectionId', (q) => q.eq('connectionId', args.id))
+      .withIndex('by_connectionId', (q) => q.eq('connectionId', id))
       .collect();
 
-    // 3. Return both connection and chronicles
+    const processedChronicles = chronicles.map((chronicle) => {
+      // Check if message is delivered
+
+      const deliveryInfo = getDeliveryInfo(chronicle, connection.delayInHours);
+
+      const delivered = deliveryInfo.delivered;
+      const deliveryTime = deliveryInfo.timeLeft;
+
+      return {
+        ...chronicle,
+        // For undelivered messages, generate jibberish of similar length
+        content:
+          !delivered && chronicle.receiver === user._id
+            ? generateJibberish(chronicle.content)
+            : chronicle.content,
+        delivered,
+        deliveryTime: deliveryTime,
+      };
+    });
+
     return {
       connection,
-      chronicles,
+      chronicles: processedChronicles,
     };
   },
 });
